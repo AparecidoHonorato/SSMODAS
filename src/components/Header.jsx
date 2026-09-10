@@ -96,7 +96,7 @@ export default function Header() {
 
         <div className="flex items-center gap-4">
           <button onClick={abrirMenu} className="flex items-center gap-1 text-xs font-semibold text-stone-700 transition-colors hover:text-amber-700" aria-expanded={menuAberto}>
-            Produtos
+            Menu
             <ChevronDown className={`h-4 w-4 transition-transform ${menuAberto ? 'rotate-180' : ''}`} />
           </button>
           <button
