@@ -194,6 +194,17 @@ export default function Header() {
               </div>
             ) : (
               <div>
+                <div className="mb-3 grid grid-cols-3 gap-2 border-b border-stone-200 pb-3 md:hidden">
+                  <button onClick={() => abrirSecao('contato')} className="rounded-lg border border-stone-200 px-2 py-2 text-[11px] font-semibold text-stone-700 hover:border-amber-400 hover:bg-amber-50">
+                    Contato
+                  </button>
+                  <button onClick={() => abrirSecao('sobre')} className="rounded-lg border border-stone-200 px-2 py-2 text-[11px] font-semibold text-stone-700 hover:border-amber-400 hover:bg-amber-50">
+                    Quem somos
+                  </button>
+                  <button onClick={() => abrirSecao('mapa')} className="rounded-lg border border-stone-200 px-2 py-2 text-[11px] font-semibold text-stone-700 hover:border-amber-400 hover:bg-amber-50">
+                    Endereço
+                  </button>
+                </div>
                 <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-600">Catálogo para igreja</p>
                 <p className="mb-3 px-1 text-xs text-stone-500">Vestidos modestos, elegantes e confortáveis para o culto.</p>
                 {produtoSelecionado && (
