@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { ShoppingBag, Search, Menu, ChevronDown, X, Trash2, Info, MapPin, Phone, Navigation } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ShoppingBag, Search, Menu, ChevronDown, X, Trash2, Info, MapPin, Phone, Navigation, MessageCircle } from 'lucide-react';
 import { produtos } from '../data/products';
+import { calcularFreteCorreios } from '../services/correios';
 
 export default function Header() {
   const [menuAberto, setMenuAberto] = useState(false);
@@ -12,6 +13,12 @@ export default function Header() {
   const [secaoAberta, setSecaoAberta] = useState(null);
   const [itensNaSacola, setItensNaSacola] = useState([]);
   const [mensagemSacola, setMensagemSacola] = useState('');
+  const [modalFreteAberto, setModalFreteAberto] = useState(false);
+  const [cepDestino, setCepDestino] = useState('');
+  const [servicoFrete, setServicoFrete] = useState('pac');
+  const [frete, setFrete] = useState(null);
+  const [calculandoFrete, setCalculandoFrete] = useState(false);
+  const [erroFrete, setErroFrete] = useState('');
 
   useEffect(() => {
     const fecharComEscape = (evento) => {
@@ -42,23 +49,61 @@ export default function Header() {
   const produtosFiltrados = produtos.filter((produto) =>
     produto.nome.toLowerCase().includes(termoBusca.toLowerCase()),
   );
-  const totalSacola = itensNaSacola.reduce(
-    (total, produto) => total + Number(produto.preco.replace('R$ ', '').replace('.', '').replace(',', '.')),
-    0,
-  );
+
+  const resumoSacola = useMemo(() => {
+    return itensNaSacola.reduce((acc, item) => {
+      const valor = Number(item.preco.replace('R$ ', '').replace('.', '').replace(',', '.'));
+      return {
+        total: acc.total + valor,
+        quantidade: acc.quantidade + 1,
+      };
+    }, { total: 0, quantidade: 0 });
+  }, [itensNaSacola]);
 
   const adicionarProduto = (produto) => {
     setItensNaSacola((itens) => [...itens, produto]);
     setProdutoSelecionado(null);
     setProdutoEmVisualizacao(null);
-    setSacolaAberta(false);
-    setMenuAberto(true);
+    setSacolaAberta(true);
+    setMenuAberto(false);
     setMensagemSacola(`${produto.nome} foi adicionado à sacola.`);
     window.setTimeout(() => setMensagemSacola(''), 3000);
   };
 
-  const removerProduto = (indice) => {
+  const removerItem = (indice) => {
     setItensNaSacola((itens) => itens.filter((_, itemIndice) => itemIndice !== indice));
+  };
+
+  const consultarFrete = async (evento) => {
+    evento.preventDefault();
+    const cepLimpo = cepDestino.replace(/\D/g, '');
+    if (cepLimpo.length !== 8) {
+      setErroFrete('Informe um CEP com 8 dígitos.');
+      return;
+    }
+
+    try {
+      setCalculandoFrete(true);
+      setErroFrete('');
+      const dados = await calcularFreteCorreios({
+        cepDestino: cepLimpo,
+        servico: servicoFrete,
+        peso: 0.5,
+        valorDeclarado: resumoSacola.total,
+      });
+
+      setFrete({
+        valor: Number(dados.valor),
+        prazo: Number(dados.prazo),
+        mensagem: dados.mensagem,
+        servico: dados.servico,
+      });
+      setModalFreteAberto(false);
+    } catch (erro) {
+      setErroFrete(erro.message || 'Não foi possível calcular o frete.');
+    } finally {
+      setCalculandoFrete(false);
+    }
   };
 
   const abrirMenu = () => {
@@ -131,14 +176,16 @@ export default function Header() {
 
         {(menuAberto || sacolaAberta) && (
           <div className={sacolaAberta
-            ? 'fixed left-1/2 top-1/2 z-[55] max-h-[85vh] w-[calc(100%-2.5rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-stone-200 bg-white p-5 shadow-2xl shadow-stone-900/20'
+            ? 'fixed right-0 top-0 z-[55] h-screen w-full max-w-md overflow-y-auto border-l border-stone-200 bg-white p-5 shadow-2xl shadow-stone-900/20 transition-transform duration-300'
             : 'absolute right-5 top-[calc(100%+0.5rem)] z-50 max-h-[calc(100vh-6rem)] w-[min(42rem,calc(100vw-2.5rem))] overflow-y-auto rounded-xl border border-stone-200 bg-white p-3 shadow-2xl shadow-stone-900/10'}>
             {sacolaAberta ? (
               <div>
                 <div className="mb-3 flex items-center justify-between">
-                  <p className="text-sm font-semibold uppercase tracking-[0.15em] text-amber-600">Sua sacola</p>
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-[0.15em] text-amber-600">Sua sacola</p>
+                    <span className="text-xs text-stone-500">{resumoSacola.quantidade} item(ns)</span>
+                  </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-xs text-stone-500">{itensNaSacola.length} item(ns)</span>
                     <button
                       type="button"
                       onClick={() => setSacolaAberta(false)}
@@ -151,18 +198,27 @@ export default function Header() {
                   </div>
                 </div>
                 {itensNaSacola.length === 0 ? (
-                  <p className="py-4 text-center text-sm text-stone-500">Sua sacola está vazia.</p>
+                  <div className="flex min-h-[18rem] flex-col items-center justify-center">
+                    <ShoppingBag className="mb-3 h-10 w-10 text-stone-300" />
+                    <p className="py-4 text-center text-sm text-stone-500">Sua sacola está vazia.</p>
+                    <button onClick={() => setSacolaAberta(false)} className="rounded-full border border-stone-300 px-4 py-2 text-xs font-bold uppercase tracking-[0.22em] text-stone-700 hover:bg-amber-500 hover:text-white">
+                      Ver coleção
+                    </button>
+                  </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {itensNaSacola.map((produto, indice) => (
-                      <div key={`${produto.nome}-${indice}`} className="flex items-center gap-3 rounded-lg bg-stone-50 p-2">
-                        <img src={produto.imagem} alt="" className="h-12 w-12 rounded-lg object-cover" />
-                        <span className="min-w-0 flex-1">
+                      <div key={`${produto.nome}-${indice}`} className="flex items-center gap-3 rounded-xl border border-stone-100 bg-stone-50 p-3">
+                        <img src={produto.imagem} alt="" className="h-20 w-16 rounded-lg object-cover" />
+                        <div className="min-w-0 flex-1">
                           <span className="block truncate text-xs font-semibold text-stone-900">{produto.nome}</span>
                           <span className="text-[11px] text-stone-500">{produto.preco}</span>
-                        </span>
+                          <div className="mt-2 flex items-center gap-2">
+                            <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-stone-700">Qtd 1</span>
+                          </div>
+                        </div>
                         <button
-                          onClick={() => removerProduto(indice)}
+                          onClick={() => removerItem(indice)}
                           className="rounded p-1 text-stone-400 hover:bg-red-50 hover:text-red-600"
                           aria-label={`Remover ${produto.nome}`}
                           title="Remover produto"
@@ -171,15 +227,38 @@ export default function Header() {
                         </button>
                       </div>
                     ))}
-                    <div className="mt-4 flex items-center justify-between border-t border-stone-200 pt-4">
+                    <div className="rounded-xl bg-stone-900 p-4 text-white">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-300">Subtotal</span>
+                        <span className="text-lg font-bold text-amber-300">
+                          R$ {resumoSacola.total.toFixed(2).replace('.', ',')}
+                        </span>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between border-t border-white/10 pt-2">
+                        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-300">Frete</span>
+                        <button type="button" onClick={() => setModalFreteAberto(true)} className="rounded-full border border-amber-300 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-amber-300 hover:bg-amber-300 hover:text-stone-900">
+                          {frete ? `R$ ${frete.valor.toFixed(2).replace('.', ',')}` : 'Calcular CEP'}
+                        </button>
+                      </div>
+                      {frete && (
+                        <div className="mt-2 border-t border-white/10 pt-2 text-[11px] text-stone-300">
+                          <span>Prazo: {frete.prazo} dia(s)</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between border-t border-stone-200 pt-4">
                       <span className="text-sm font-medium text-stone-600">Total</span>
                       <span className="text-lg font-bold text-stone-900">
-                        R$ {totalSacola.toFixed(2).replace('.', ',')}
+                        R$ {(resumoSacola.total + (frete ? frete.valor : 0)).toFixed(2).replace('.', ',')}
                       </span>
                     </div>
-                    <button className="mt-3 w-full rounded-lg bg-amber-400 px-4 py-3 text-sm font-semibold text-black hover:bg-amber-500">
-                      Finalizar pedido
-                    </button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button className="rounded-lg border border-stone-300 px-4 py-3 text-sm font-semibold text-stone-800 hover:bg-stone-100">
+                        Continuar</button>
+                      <a href="https://wa.me/5566996075729?text=Ol%C3%A1%2C%20quero%20finalizar%20meu%20pedido%20da%20SSmoment%27s." target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 rounded-lg bg-amber-400 px-4 py-3 text-sm font-bold text-black hover:bg-amber-500">
+                        <MessageCircle className="h-4 w-4" /> Finalizar pedido
+                      </a>
+                    </div>
                   </div>
                 )}
               </div>
@@ -337,6 +416,63 @@ export default function Header() {
                 Adicionar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {modalFreteAberto && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-stone-950/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl border border-stone-200 bg-white p-6 shadow-2xl">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-[0.28em] text-amber-600">Entrega</span>
+                <h3 className="mt-1 font-serif text-2xl font-semibold text-stone-900">Calcular frete</h3>
+              </div>
+              <button type="button" onClick={() => setModalFreteAberto(false)} className="rounded-full p-2 text-stone-500 hover:bg-stone-100 hover:text-stone-900" aria-label="Fechar">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form className="space-y-4" onSubmit={consultarFrete}>
+              <div>
+                <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.24em] text-stone-700">CEP de destino</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={cepDestino}
+                  onChange={(evento) => setCepDestino(evento.target.value)}
+                  placeholder="Ex.: 82510-000"
+                  className="w-full rounded-xl border border-stone-300 px-4 py-3 text-sm outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-[11px] font-black uppercase tracking-[0.24em] text-stone-700">Serviço dos Correios</label>
+                <select
+                  value={servicoFrete}
+                  onChange={(evento) => setServicoFrete(evento.target.value)}
+                  className="w-full rounded-xl border border-stone-300 px-4 py-3 text-sm outline-none focus:border-amber-500"
+                >
+                  <option value="pac">PAC</option>
+                  <option value="sedex">SEDEX</option>
+                </select>
+              </div>
+
+              {erroFrete && (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-700">
+                  {erroFrete}
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={() => setModalFreteAberto(false)} className="flex-1 rounded-xl border border-stone-300 px-4 py-3 text-sm font-black uppercase tracking-[0.22em] text-stone-700 hover:bg-stone-100">
+                  Voltar
+                </button>
+                <button type="submit" disabled={calculandoFrete} className="flex-1 rounded-xl bg-amber-400 px-4 py-3 text-sm font-black uppercase tracking-[0.22em] text-black hover:bg-amber-500 disabled:opacity-70">
+                  {calculandoFrete ? 'Calculando...' : 'Calcular'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
