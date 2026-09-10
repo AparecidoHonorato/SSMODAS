@@ -187,7 +187,7 @@ export default function Header() {
               <div>
                 <div className="mb-3 grid grid-cols-2 gap-2 border-b border-stone-200 pb-3 sm:grid-cols-4">
                   <button onClick={() => setMenuAberto(true)} className="rounded-lg bg-amber-100 px-2 py-2 text-[11px] font-semibold text-amber-800">
-                    Produtos
+                    Menu
                   </button>
                   <button onClick={() => abrirSecao('contato')} className="rounded-lg border border-stone-200 px-2 py-2 text-[11px] font-semibold text-stone-700 hover:border-amber-400 hover:bg-amber-50">
                     Contato
