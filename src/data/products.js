@@ -1,4 +1,4 @@
-const imagemLocal = (nome) => `/${encodeURIComponent(nome)}`;
+const imagemLocal = (nome) => `${import.meta.env.BASE_URL}${encodeURIComponent(nome)}`;
 
 export const fotosSalvas = [
   'WhatsApp Image 2026-09-10 at 17.20.12.jpeg',
