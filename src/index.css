@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@keyframes bannerZoom {
+	0%,
+	100% {
+		transform: scale(1);
+	}
+
+	50% {
+		transform: scale(1.06);
+	}
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.banner-motion {
+		animation: bannerZoom 4.5s ease-in-out infinite;
+	}
+}
