@@ -99,15 +99,6 @@ export default function Header() {
             Produtos
             <ChevronDown className={`h-4 w-4 transition-transform ${menuAberto ? 'rotate-180' : ''}`} />
           </button>
-          <button onClick={() => abrirSecao('contato')} className="hidden items-center gap-1 text-xs font-semibold text-stone-700 transition-colors hover:text-amber-700 sm:flex" aria-expanded={secaoAberta === 'contato'}>
-            Contato <ChevronDown className="h-3.5 w-3.5" />
-          </button>
-          <button onClick={() => abrirSecao('sobre')} className="hidden items-center gap-1 text-xs font-semibold text-stone-700 transition-colors hover:text-amber-700 lg:flex" aria-expanded={secaoAberta === 'sobre'}>
-            Quem somos <ChevronDown className="h-3.5 w-3.5" />
-          </button>
-          <button onClick={() => abrirSecao('mapa')} className="hidden items-center gap-1 text-xs font-semibold text-stone-700 transition-colors hover:text-amber-700 xl:flex" aria-expanded={secaoAberta === 'mapa'}>
-            Endereço <ChevronDown className="h-3.5 w-3.5" />
-          </button>
           <button
             onClick={() => { setBuscaAberta((aberta) => !aberta); setMenuAberto(true); setSacolaAberta(false); }}
             className="text-stone-700 hover:text-amber-700"
@@ -194,7 +185,10 @@ export default function Header() {
               </div>
             ) : (
               <div>
-                <div className="mb-3 grid grid-cols-3 gap-2 border-b border-stone-200 pb-3 md:hidden">
+                <div className="mb-3 grid grid-cols-2 gap-2 border-b border-stone-200 pb-3 sm:grid-cols-4">
+                  <button onClick={() => setMenuAberto(true)} className="rounded-lg bg-amber-100 px-2 py-2 text-[11px] font-semibold text-amber-800">
+                    Produtos
+                  </button>
                   <button onClick={() => abrirSecao('contato')} className="rounded-lg border border-stone-200 px-2 py-2 text-[11px] font-semibold text-stone-700 hover:border-amber-400 hover:bg-amber-50">
                     Contato
                   </button>
