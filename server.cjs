@@ -11,16 +11,29 @@ const SERVICO_MAP = {
   sedex: '04014',
 };
 
+function normalizarPayload(rawBody) {
+  try {
+    const parsed = JSON.parse(rawBody || '{}');
+    return {
+      cepDestino: parsed.cepDestino || '',
+      servico: parsed.servico || 'pac',
+      peso: parsed.peso || 0.5,
+      valorDeclarado: parsed.valorDeclarado || 0,
+    };
+  } catch (erro) {
+    return null;
+  }
+}
+
 app.post('/api/correios/calcular', async (req, res) => {
   try {
-    let body = {};
-    try {
-      body = JSON.parse(req.body || '{}');
-    } catch (parseError) {
-      return res.status(400).json({ mensagem: 'Payload inválido para o cálculo do frete.', valor: null, prazo: null });
+    const payload = normalizarPayload(req.body);
+
+    if (!payload) {
+      return res.status(400).json({ mensagem: 'Payload inválido.', valor: null, prazo: null });
     }
 
-    const { cepDestino, servico = 'pac', peso = 0.5, valorDeclarado = 0 } = body;
+    const { cepDestino, servico = 'pac', peso = 0.5, valorDeclarado = 0 } = payload;
     const cepLimpo = String(cepDestino || '').replace(/\D/g, '');
 
     if (cepLimpo.length !== 8) {
@@ -50,6 +63,9 @@ app.post('/api/correios/calcular', async (req, res) => {
       </soap:Body>
     </soap:Envelope>`;
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
     const resposta = await fetch(CORREIOS_WSDL, {
       method: 'POST',
       headers: {
@@ -57,7 +73,8 @@ app.post('/api/correios/calcular', async (req, res) => {
         SOAPAction: 'http://tempuri.org/CalcPrecoPrazo',
       },
       body: requestBody,
-    });
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeout));
 
     if (!resposta.ok) {
       return res.status(502).json({ mensagem: 'Falha ao consultar os Correios.', valor: null, prazo: null });
