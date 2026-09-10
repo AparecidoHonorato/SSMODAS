@@ -1,4 +1,19 @@
-# React + Vite
+# SSmoment's Moda Moderna
+
+Loja de moda modesta e vestidos para igreja.
+
+## Site
+
+[Abrir o site no celular](https://aparecidohonorato.github.io/SSMODAS/)
+
+## Desenvolvimento
+
+```bash
+npm install
+npm run dev
+```
+
+O site é publicado automaticamente no GitHub Pages a cada atualização na branch `main`.# React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
