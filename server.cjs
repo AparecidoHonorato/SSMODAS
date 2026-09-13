@@ -1,7 +1,25 @@
 const express = require('express');
 const app = express();
 
+// Permite que o site publicado no GitHub Pages (outra origem) chame esta API.
+// Em produção, defina ALLOWED_ORIGIN=https://aparecidohonorato.github.io no Render
+// para restringir o acesso só ao seu site (em vez de aceitar qualquer origem).
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || '*';
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
+  res.header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
+
 app.use(express.text({ type: 'application/json', limit: '1mb' }));
+
+// Rota de health check — útil pra confirmar no navegador que o serviço subiu no Render
+// (o Render também usa isso pra saber que o serviço está saudável).
+app.get('/', (_req, res) => {
+  res.json({ status: 'ok', service: 'ssmodas-correios-proxy' });
+});
 
 const PORT = process.env.PORT || 3001;
 const CORREIOS_WSDL = 'http://ws.correios.com.br/calculador/CalcPrecoPrazo.asmx';
